@@ -1,157 +1,185 @@
-"""CSE 242 Assignment 1 — submit as Assignment1.py.
+# CSE 242 Assignment 1
 
-Fill # YOUR ANSWER HERE blocks with commented reasoning; fill function bodies
-at # YOUR CODE HERE. Keep signatures. See README.md and INTERFACE.md.
-Functions must not mutate inputs, prompt for input, or perform network I/O.
-Only code inside the main guard should save/show figures.
-"""
+# Author: Brian Sabbath.
+
 import numpy as np
+import csv
 
+from pathlib import Path
 
-# PART 1 (20 points), Q1: Show computations for the given A and B.
-# YOUR ANSWER HERE
-def matrix_operations(A=None, B=None):
-    """Return AB, BA, (A+B).T, A@B.T, trace(A), trace(AB).
+# For P3 Q2:
 
-    Defaults: A=[[3,4],[2,1]], B=[[1,2],[0,-1]]. Other inputs are square
-    real matrices of matching size. Return a tuple in the specified order.
-    """
-    # YOUR CODE HERE
-    raise NotImplementedError()
+# Generate independent samples from N([2,-1], [[3,1.2],[1.2,1]]).
+# The population correlation is 1.2/sqrt(3*1) = 0.6928, so the point
+# cloud should slope upward. A generator makes the sample reproducible.
 
-
-# P1 Q2: Derive the given M eigenpairs and verify Mv=lambda*v.
-# YOUR ANSWER HERE
-def eigensystem(M=None):
-    """Return (values, vectors) for real symmetric M (default [[2,-1],[-1,2]]).
-
-    Vectors are columns paired with values; order, sign, and nonzero scale
-    are free. Vectors must span each eigenspace, including repeated roots.
-    """
-    # YOUR CODE HERE
-    raise NotImplementedError()
-
-
-# P1 Q3: Prove trace(AB)=trace(BA) for compatible matrices.
-# YOUR ANSWER HERE
-
-# P1 Q4: Show the given C is invertible, and compute its inverse step by step.
-# YOUR ANSWER HERE
-def matrix_inverse(C=None):
-    """Return inverse of nonsingular square C; default C=[[4,7],[2,6]]."""
-    # YOUR CODE HERE
-    raise NotImplementedError()
-
-
-# PART 2 (50 points), Q1: Normalize c*3**k/k!, derive expectation and variance.
-# YOUR ANSWER HERE
-def distribution_moments(rate=3.):
-    """Return (c, mean, variance) for P(X=k)=c*rate**k/k!, k>=0, rate>0."""
-    # YOUR CODE HERE
-    raise NotImplementedError()
-
-
-# P2 Q2: Show reasoning for intersection, conditional, and union probabilities.
-# YOUR ANSWER HERE
-def event_probabilities(p_a=.5, p_b=.3, p_a_given_b=.6):
-    """Return (P(A intersect B), P(B|A), P(A union B)).
-
-    Inputs describe a valid distribution with p_a,p_b>0.
-    """
-    # YOUR CODE HERE
-    raise NotImplementedError()
-
-
-# P2 Q3: Derive MLE/MAP for H,H,T,H,T, including the prior and maximization.
-# YOUR ANSWER HERE
-def coin_estimates(heads=3, tosses=5):
-    """Return (MLE, MAP) using prior density 2*theta on [0,1].
-
-    0<=heads<=tosses, positive integer tosses. Include boundary maxima.
-    """
-    # YOUR CODE HERE
-    raise NotImplementedError()
-
-
-# P2 Q4: Derive both Gaussian MLEs for [1,3,5,7] step by step.
-# YOUR ANSWER HERE
-def gaussian_mle(data=None):
-    """Return (mean MLE, variance MLE); default data=[1,3,5,7].
-
-    Other inputs are finite 1D samples of length>=2 with nonzero variance.
-    """
-    # YOUR CODE HERE
-    raise NotImplementedError()
-
-
-# P2 Q5: Derive the Gaussian posterior mode for the given observation/prior.
-# YOUR ANSWER HERE
-def gaussian_map(x=5., observation_variance=4., prior_mean=0., prior_variance=1.):
-    """Return posterior mode for one observation and a Gaussian mean prior.
-
-    Both variances are positive; inputs are variances, not standard deviations.
-    """
-    # YOUR CODE HERE
-    raise NotImplementedError()
-
-
-# P2 Q6: Prove Var(X)=E[X**2]-E[X]**2.
-# YOUR ANSWER HERE
-
-# PART 3 (30 points), Q1: Define covariance and derive Var(u.T@X)=u.T@Sigma@u.
-# YOUR ANSWER HERE
-
-# P3 Q2: Describe the Gaussian generator and observed correlation.
-# YOUR ANSWER HERE
 def generate_data(n_samples=500, seed=0, mean=None, covariance=None):
-    """Return reproducible Gaussian samples (n_samples,2) using NumPy and seed.
+    # Return reproducible Gaussian samples of shape (n_samples, 2).
+    location = np.asarray([2, -1] if mean is None else mean, dtype=float)
+    cov = np.asarray(
+        [[3, 1.2], [1.2, 1]] if covariance is None else covariance,
+        dtype=float,
+    )
+    rng = np.random.default_rng(seed)
+    return rng.multivariate_normal(location, cov, size=n_samples)
 
-    Defaults: mean=[2,-1], covariance=[[3,1.2],[1.2,1]]. Custom mean has shape
-    (2,), covariance (2,2) is positive definite. Do not mutate input arrays.
-    """
-    # YOUR CODE HERE
-    raise NotImplementedError()
 
+# For P3 Q3:
 
-# P3 Q3: Link centering/covariance/eigendecomposition to the derivation and explain the plot.
-# YOUR ANSWER HERE
+# 1. Subtract each feature's sample mean to form centered observations.
+# 2. Estimate Sigma with the sample covariance matrix.
+# 3. Since S is symmetric, eigh should return orthonormal eigenvectors.
+# 4. Sort descending: maximizing (u^T)*S*u under (u^T)*u=1 selects the
+#    eigenvector with the largest eigenvalue. 
+# 5. Scores = Z * components
 def pca(X):
-    """Fit NumPy PCA without mutating finite X of shape (n,2), n>=2.
+    # Fit PCA with NumPy and return all intermediate arrays.
 
-    Return dict: mean (2,), centered (n,2), covariance (2,2), eigenvalues (2,),
-    components (2,2), scores (n,2). Use covariance divisor n-1, descending
-    eigenvalues, orthonormal eigenvectors as columns, scores=centered@components.
-    Signs/tied-eigenspace bases are free. Include rank-deficient and tied cases.
-    NumPy eigh/SVD are allowed; fitted library PCA is not.
-    """
-    # YOUR CODE HERE
-    raise NotImplementedError()
+    # X has shape (n, 2), n >= 2. Components are orthonormal columns,
+    # eigenvalues descend, and covariance uses divisor n-1. 
+
+    samples = np.asarray(X, dtype=float)
+    mean = np.mean(samples, axis=0)
+    centered = samples - mean
+    covariance = centered.T @ centered / (samples.shape[0] - 1)
+    eigenvalues, eigenvectors = np.linalg.eigh(covariance)
+    order = np.argsort(eigenvalues)[::-1]
+    eigenvalues = np.maximum(eigenvalues[order], 0.0)
+    components = eigenvectors[:, order]
+    scores = centered @ components
+    return {
+        "mean": mean,
+        "centered": centered,
+        "covariance": covariance,
+        "eigenvalues": eigenvalues,
+        "components": components,
+        "scores": scores,
+    }
 
 
-# P3 Q4: Interpret the variance fractions and dimensionality reduction tradeoff.
-# YOUR ANSWER HERE
+# For P3 Q4:
+
+# The variance along component i equals lambda i (subscripted. Not sure
+# if there's a '^' equivalent for subscripts). Total variance is
+# trace(S)=sum(lambda i), so its fraction is lambda i / sum(lambda j).
+
 def explained_variance(eigenvalues):
-    """Return same-shape fractions for nonnegative eigenvalues with positive sum."""
-    # YOUR CODE HERE
-    raise NotImplementedError()
+    # Return same-shape fractions for nonnegative values of positive sum.
+    values = np.asarray(eigenvalues, dtype=float)
+    return values / np.sum(values)
 
 
-# P3 Q2/Q3/Q4: Provide labeled figures and discuss their meaning.
-# YOUR ANSWER HERE
-def make_plots(X, result):
-    """Return a Matplotlib Figure (or sequence of Figures), without show/save.
+# Excel data for P3:
 
-    Plot samples and principal directions through their mean, and explained
-    variance fractions. Label axes. Plot quality is manually reviewed.
-    """
-    # YOUR CODE HERE
-    raise NotImplementedError()
+# Figure 1: raw samples on top, principal directions on bottom.
+# Figure 2: principal component scores on top, explained variance on bottom.
+# Figure 3: original samples and their reconstruction using only PC1.
+
+def export_excel_data(X, result, output_directory):
+    #Export the data for Figures 1, 2, and 3 as five Excel-ready CSVs.
+
+    # Original feature values are in figure_1_raw_data.csv. The other files
+    # contain calculated PCA values needed for the remaining plots.
+    # Variance fractions are formatted as percentages in Excel.
+    # Return the saved file paths without changing X or result.
+
+    samples = np.asarray(X, dtype=float)
+    mean = result["mean"]
+    values = result["eigenvalues"]
+    components = result["components"]
+    scores = result["scores"]
+    output_directory = Path(output_directory)
+    output_directory.mkdir(parents=True, exist_ok=True)
+    saved_paths = []
+
+    def write_csv(filename, header, rows):
+
+        path = output_directory / filename
+        with path.open("w", newline="", encoding="utf-8-sig") as stream:
+            writer = csv.writer(stream)
+            writer.writerow(header)
+            writer.writerows(rows)
+        saved_paths.append(path)
+
+    # Figure 1, top: 
+    # Feature_1 is x and Feature_2 is y.
+    write_csv(
+        "figure_1_raw_data.csv",
+        ["Sample", "Feature_1", "Feature_2"],
+        ((index + 1, *point) for index, point in enumerate(samples)),
+    )
+
+    # Figure 1, bottom: 
+    # Add these two direction series to the raw plot.
+    displacement = components * (2.0 * np.sqrt(values))
+    positions = (
+        ("Negative endpoint", -1),
+        ("Mean", 0),
+        ("Positive endpoint", 1),
+    )
+    direction_rows = []
+    for label, factor in positions:
+        pc1_point = mean + factor * displacement[:, 0]
+        pc2_point = mean + factor * displacement[:, 1]
+        direction_rows.append((label, *pc1_point, *pc2_point))
+    write_csv(
+        "figure_1_principal_directions.csv",
+        ["Position", "PC1_x", "PC1_y", "PC2_x", "PC2_y"],
+        direction_rows,
+    )
+
+    # Figure 2, top: 
+    # PC1_score is x and PC2_score is y.
+    write_csv(
+        "figure_2_scores.csv",
+        ["Sample", "PC1_score", "PC2_score"],
+        ((index + 1, *point) for index, point in enumerate(scores)),
+    )
+
+    # Figure 2, bottom: 
+    # Component labels and Variance_fraction bar heights.
+    fractions = (
+        explained_variance(values) if np.sum(values) > 0 else [None, None]
+    )
+    write_csv(
+        "figure_2_explained_variance.csv",
+        ["Component", "Eigenvalue", "Variance_fraction"],
+        ((f"PC{index + 1}", value, fractions[index])
+         for index, value in enumerate(values)),
+    )
+
+    # Figure 3: plot the original and reconstructed feature pairs.
+    reconstruction = mean + np.outer(scores[:, 0], components[:, 0])
+    write_csv(
+        "figure_3_reconstruction.csv",
+        [
+            "Sample", "Original_Feature_1", "Original_Feature_2",
+            "Reconstructed_Feature_1", "Reconstructed_Feature_2",
+        ],
+        ((index + 1, *point, *reconstruction[index])
+         for index, point in enumerate(samples)),
+    )
+    return saved_paths
 
 
-# REFLECTION: contributions, tasks completed, and external resources used.
-# YOUR ANSWER HERE
+if __name__ == "__main__":
 
-if __name__ == '__main__':
-    # YOUR CODE HERE: call your functions and save/display the requested figures.
-    # This block does not run when the grader imports your functions.
-    pass
+    data = generate_data()
+    fitted = pca(data)
+    print("Sample mean:\n", fitted["mean"])
+    print("Sample covariance:\n", fitted["covariance"])
+    print("Sample correlation:", np.corrcoef(data, rowvar=False)[0, 1])
+    print("Eigenvalues:", fitted["eigenvalues"])
+    print("Components (columns):\n", fitted["components"])
+    print("Explained variance:", explained_variance(fitted["eigenvalues"]))
+    reconstructed = fitted["mean"] + np.outer(
+        fitted["scores"][:, 0], fitted["components"][:, 0],
+    )
+    squared_error = np.sum((data - reconstructed) ** 2, axis=1)
+    print("PC1 mean squared reconstruction distance:", np.mean(squared_error))
+
+    output_directory = Path(__file__).resolve().parent / "asgn1_excel_data"
+    saved_files = export_excel_data(data, fitted, output_directory)
+    print("\nSaved Excel data:")
+    for saved_file in saved_files:
+        print(saved_file)
